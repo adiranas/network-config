@@ -51,14 +51,14 @@ function parse(ifConfigOut, routeOut) {
       ip: getInterfaceIpAddr(lines[1]),
       netmask: getInterfaceNetmaskAddr(lines[1]),
       broadcast: getBroadcastAddr(lines[1]),
-      mac: getInterfaceMacAddr(_.first(lines)),
+      mac: getInterfaceMacAddr(lines[3]),
       gateway: getGateway(routeOut)
     };
   });
 }
 
 function getInterfaceName(firstLine) {
-  return _.first(firstLine.split(' '));
+  return firstLine.split(' ')[0].replace(":","");
 }
 
 /**
@@ -71,18 +71,11 @@ function getInterfaceName(firstLine) {
  * @param  {string} firstLine
  * @return {string}           Mac address, format: "xx:xx:xx:xx:xx:xx"
  */
-function getInterfaceMacAddr(firstLine) {
-  if (!_.includes(firstLine, MAC)) {
+function getInterfaceMacAddr(line) {
+  if (!_.includes(line, "ether")) {
     return null;
   }
-
-  var macAddr = _.last(firstLine.split(MAC)).trim().replace(/-/g, ':');
-
-  if (macAddr.split(':').length !== 6) {
-    return null;
-  }
-
-  return macAddr;
+  return line.match(/([0-9a-zA-Z]{2}\:){5}[0-9a-zA-Z]{2}/)[0];
 }
 
 /**
@@ -98,7 +91,7 @@ function getInterfaceIpAddr(line) {
   if (!_.includes(line, INET)) {
     return null;
   }
-  return _.first(line.split(':')[1].split(' '));
+  return line.match(/([0-9]{1,3}\.){3}[0-9]{1,3}/g)[0];
 }
 
 /**
@@ -114,7 +107,7 @@ function getInterfaceNetmaskAddr(line) {
   if (!_.includes(line, INET)) {
     return null;
   }
-  return _.last(line.split(':'));
+  return line.match(/([0-9]{1,3}\.){3}[0-9]{1,3}/g)[1];
 }
 
 /**
@@ -129,13 +122,7 @@ function getBroadcastAddr(line) {
 
   // inet adr:1.1.1.77  Bcast:1.1.1.255  Masque:1.1.1.0
   // @todo oh boy. this is ugly.
-  return _.chain(line)
-    .split(BCAST)
-    .slice(1)
-    .first()
-    .value()
-    .substring(1)
-    .split(' ')[0];
+  return line.match(/([0-9]{1,3}\.){3}[0-9]{1,3}/g)[2] || null;
 }
 
 
